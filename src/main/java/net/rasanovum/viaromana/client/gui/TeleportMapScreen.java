@@ -71,7 +71,8 @@ public class TeleportMapScreen extends Screen {
 
     // Constants
     private static final int MARKER_SIZE = 16;
-    private static final int ITEM_MARKER_SIZE = 20;
+    private static final int ITEM_MARKER_SIZE = 22;
+    private static final int ITEM_MARKER_HOVER_SIZE = 24;
     private static final int PLAYER_MARKER_SIZE = 8;
     private static final float MARKER_FADE_SPEED = 0.05f;
     private static final int DIRECTION_INDICATOR_BUFFER = 2;
@@ -474,20 +475,23 @@ public class TeleportMapScreen extends Screen {
 
     private void renderDestinationIcon(GuiGraphics guiGraphics, DestinationIconRegistry.Entry icon, int x, int y, float alpha, boolean isHovered) {
         if (icon.kind() == DestinationIconRegistry.Kind.ITEM) {
-            int backingX = x - (ITEM_MARKER_SIZE - MARKER_SIZE) / 2;
-            int backingY = y - (ITEM_MARKER_SIZE - MARKER_SIZE) / 2;
-            int backingAlpha = isHovered ? 235 : 205;
+            int markerSize = isHovered ? ITEM_MARKER_HOVER_SIZE : ITEM_MARKER_SIZE;
+            int backingX = x - (markerSize - MARKER_SIZE) / 2;
+            int backingY = y - (markerSize - MARKER_SIZE) / 2;
+            int backingAlpha = isHovered ? 245 : 210;
+            int borderColor = isHovered ? 0x6B4A19 : 0x3F2A1B;
 
-            guiGraphics.fill(backingX + 1, backingY + 1, backingX + ITEM_MARKER_SIZE + 1, backingY + ITEM_MARKER_SIZE + 1, alphaColor(alpha, 96, 0x000000));
-            guiGraphics.fill(backingX, backingY, backingX + ITEM_MARKER_SIZE, backingY + ITEM_MARKER_SIZE, alphaColor(alpha, backingAlpha, 0xD5B982));
-            guiGraphics.hLine(backingX, backingX + ITEM_MARKER_SIZE - 1, backingY, alphaColor(alpha, 220, 0x3F2A1B));
-            guiGraphics.hLine(backingX, backingX + ITEM_MARKER_SIZE - 1, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
-            guiGraphics.vLine(backingX, backingY, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
-            guiGraphics.vLine(backingX + ITEM_MARKER_SIZE - 1, backingY, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
+            guiGraphics.fill(backingX + 1, backingY + 1, backingX + markerSize + 1, backingY + markerSize + 1, alphaColor(alpha, 112, 0x000000));
+            guiGraphics.fill(backingX, backingY, backingX + markerSize, backingY + markerSize, alphaColor(alpha, backingAlpha, 0xD5B982));
+            guiGraphics.hLine(backingX, backingX + markerSize - 1, backingY, alphaColor(alpha, 235, borderColor));
+            guiGraphics.hLine(backingX, backingX + markerSize - 1, backingY + markerSize - 1, alphaColor(alpha, 235, borderColor));
+            guiGraphics.vLine(backingX, backingY, backingY + markerSize - 1, alphaColor(alpha, 235, borderColor));
+            guiGraphics.vLine(backingX + markerSize - 1, backingY, backingY + markerSize - 1, alphaColor(alpha, 235, borderColor));
 
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(backingX + 2, backingY + 2, 0);
-            guiGraphics.pose().scale(1.0f + (ITEM_MARKER_SIZE - MARKER_SIZE) / (float) MARKER_SIZE, 1.0f + (ITEM_MARKER_SIZE - MARKER_SIZE) / (float) MARKER_SIZE, 1.0f);
+            float itemScale = (markerSize - 4) / (float) MARKER_SIZE;
+            guiGraphics.pose().scale(itemScale, itemScale, 1.0f);
             guiGraphics.renderItem(icon.itemStack(), 0, 0);
             guiGraphics.pose().popPose();
             return;
@@ -720,6 +724,11 @@ public class TeleportMapScreen extends Screen {
         return Math.abs(mouseX - screenPos.x) <= tolerance && Math.abs(mouseY - screenPos.y) <= tolerance;
     }
 
+    private int markerHitboxSize(TeleportHelper.TeleportDestination destination) {
+        DestinationIconRegistry.Entry icon = DestinationIconRegistry.getEntry(destination.icon);
+        return icon.kind() == DestinationIconRegistry.Kind.ITEM ? ITEM_MARKER_HOVER_SIZE : MARKER_SIZE;
+    }
+
     private boolean isMouseOverPlayer(int mouseX, int mouseY) {
         if (minecraft == null || minecraft.player == null) return false;
         return worldToScreen(minecraft.player.blockPosition())
@@ -733,7 +742,7 @@ public class TeleportMapScreen extends Screen {
             if (revealedNodes.contains(dest.position) && isValidated) {
                 Optional<Point> screenPosOpt = worldToScreen(dest.position);
                 if (screenPosOpt.isPresent()) {
-                    if (isMouseOver(screenPosOpt.get(), MARKER_SIZE, mouseX, mouseY)) {
+                    if (isMouseOver(screenPosOpt.get(), markerHitboxSize(dest), mouseX, mouseY)) {
                         return dest;
                     }
                 }
