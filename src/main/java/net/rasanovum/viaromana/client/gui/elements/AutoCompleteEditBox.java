@@ -31,11 +31,11 @@ import java.util.function.Function;
 public abstract class AutoCompleteEditBox<T> extends EditBox {
     private static final int DEFAULT_MIN_SEARCH_LENGTH = 2;
     private static final long DEFAULT_DEBOUNCE_MILLIS = 150L;
-    private static final int PICKER_SIZE = 16;
-    private static final int PICKER_GAP = 3;
-    private static final int PICKER_TOP_PADDING = 2;
-    private static final int DROPDOWN_BACKGROUND = 0xE8D5B982;
-    private static final int DROPDOWN_HOVER_BACKGROUND = 0xF0E8D49A;
+    private static final int DROPDOWN_BACKGROUND = 0xE83F2A1B;
+    private static final int DROPDOWN_HOVER_BACKGROUND = 0xF05C4A3A;
+    private static final int DROPDOWN_BORDER_COLOR = 0xB8D5B982;
+    private static final int DROPDOWN_TEXT_COLOR = 0xE8D49A;
+    private static final int DROPDOWN_HOVER_TEXT_COLOR = 0xFFF1CF;
     private static final int FIELD_HINT_COLOR = 0x8A6B5B4F;
 
     private final SearchTree<T> tree;
@@ -145,7 +145,7 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
         private long pendingSearchAtMillis;
 
         public AutoComplete(int x, int y, int width, int itemHeight, int itemWidth) {
-            super(x, y, width, itemHeight * maxSuggestions + PICKER_TOP_PADDING + PICKER_SIZE, Component.empty());
+            super(x, y, width, itemHeight * maxSuggestions, Component.empty());
             this.itemHeight = itemHeight;
             this.itemWidth = itemWidth;
         }
@@ -234,19 +234,15 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
                 T item = currentSuggestions.get(i);
                 boolean hovered = i - offset == selectedIndex;
                 guiGraphics.fill(RenderType.guiOverlay(), this.getX(), minY, this.getX() + this.getWidth(), maxY, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
-                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, minY, GuiConstants.BORDER_COLOR_PRIMARY);
-                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-                guiGraphics.vLine(this.getX(), minY, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-                guiGraphics.vLine(this.getX() + this.getWidth() - 1, minY, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, minY, DROPDOWN_BORDER_COLOR);
+                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, maxY - 1, DROPDOWN_BORDER_COLOR);
                 renderItem(guiGraphics, minX, minY, item);
                 Font font = Minecraft.getInstance().font;
                 int textX = minX + itemWidth + 2;
                 int availableWidth = Math.max(0, this.getX() + this.getWidth() - textX - 3);
                 String label = truncateToWidth(font, idGetter.apply(item).toString(), availableWidth);
-                guiGraphics.drawString(font, Component.literal(label), textX, minY + (itemHeight - 9) / 2, hovered ? 0x6B4A19 : GuiConstants.TEXT_COLOR_PRIMARY, false);
+                guiGraphics.drawString(font, Component.literal(label), textX, minY + (itemHeight - 9) / 2, hovered ? DROPDOWN_HOVER_TEXT_COLOR : DROPDOWN_TEXT_COLOR, false);
             }
-
-            renderPicker(guiGraphics, mouseX, mouseY);
         }
 
         @Override
@@ -340,12 +336,12 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
 
         @Override
         protected boolean clicked(double xpos, double ypos) {
-            return super.clicked(xpos, ypos) && (isMouseOverSuggestions(xpos, ypos) || isMouseOverPicker(xpos, ypos));
+            return super.clicked(xpos, ypos) && isMouseOverSuggestions(xpos, ypos);
         }
 
         @Override
         public boolean isMouseOver(double xpos, double ypos) {
-            return super.isMouseOver(xpos, ypos) && (isMouseOverSuggestions(xpos, ypos) || isMouseOverPicker(xpos, ypos));
+            return super.isMouseOver(xpos, ypos) && isMouseOverSuggestions(xpos, ypos);
         }
 
         @Override
@@ -353,7 +349,6 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
             flushPendingSearch(true);
 
             if (!super.mouseClicked(mouseX, mouseY, button)) return false;
-            if (isMouseOverPicker(mouseX, mouseY)) return clickPicker(mouseX, mouseY);
 
             updateHoveringState(mouseX, mouseY, true);
             return chooseSelectedSuggestion();
@@ -369,88 +364,8 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
             return true;
         }
 
-        private void renderPicker(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-            if (currentSuggestions.isEmpty()) return;
-
-            int startX = pickerStartX();
-            int y = pickerY();
-            renderPickerButton(guiGraphics, startX, y, mouseX, mouseY, true);
-            renderSelectedIcon(guiGraphics, startX + PICKER_SIZE + PICKER_GAP, y, mouseX, mouseY);
-            renderPickerButton(guiGraphics, startX + (PICKER_SIZE + PICKER_GAP) * 2, y, mouseX, mouseY, false);
-        }
-
-        private void renderPickerButton(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY, boolean up) {
-            boolean hovered = mouseX >= x && mouseX < x + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE;
-            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
-            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.vLine(x, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.vLine(x + PICKER_SIZE - 1, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-
-            int color = hovered ? 0x6B4A19 : GuiConstants.TEXT_COLOR_PRIMARY;
-            int centerX = x + PICKER_SIZE / 2;
-            int startY = up ? y + 5 : y + 10;
-            for (int row = 0; row < 4; row++) {
-                int halfWidth = up ? row : 3 - row;
-                int lineY = up ? startY + row : startY - row;
-                guiGraphics.fill(RenderType.guiOverlay(), centerX - halfWidth, lineY, centerX + halfWidth + 1, lineY + 1, color);
-            }
-        }
-
-        private void renderSelectedIcon(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
-            boolean hovered = mouseX >= x && mouseX < x + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE;
-            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
-            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.vLine(x, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-            guiGraphics.vLine(x + PICKER_SIZE - 1, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
-
-            T item = getSuggestion(selectedSuggestionIndex());
-            if (item != null) {
-                renderItem(guiGraphics, x, y, item);
-            }
-        }
-
-        private boolean clickPicker(double mouseX, double mouseY) {
-            int startX = pickerStartX();
-            int y = pickerY();
-            if (mouseX >= startX && mouseX < startX + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE) {
-                scrollUp();
-                return true;
-            }
-
-            int iconX = startX + PICKER_SIZE + PICKER_GAP;
-            if (mouseX >= iconX && mouseX < iconX + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE) {
-                return chooseSelectedSuggestion();
-            }
-
-            int downX = startX + (PICKER_SIZE + PICKER_GAP) * 2;
-            if (mouseX >= downX && mouseX < downX + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE) {
-                scrollDown();
-                return true;
-            }
-
-            return false;
-        }
-
         private boolean isMouseOverSuggestions(double x, double y) {
             return super.isMouseOver(x, y) && y >= getY() && y < getY() + shownSuggestions() * itemHeight;
-        }
-
-        private boolean isMouseOverPicker(double x, double y) {
-            return !currentSuggestions.isEmpty()
-                    && x >= pickerStartX()
-                    && x < pickerStartX() + PICKER_SIZE * 3 + PICKER_GAP * 2
-                    && y >= pickerY()
-                    && y < pickerY() + PICKER_SIZE;
-        }
-
-        private int pickerStartX() {
-            return this.getX() + this.getWidth() - PICKER_SIZE * 3 - PICKER_GAP * 2;
-        }
-
-        private int pickerY() {
-            return this.getY() + shownSuggestions() * itemHeight + PICKER_TOP_PADDING;
         }
 
         private String truncateToWidth(Font font, String text, int width) {
