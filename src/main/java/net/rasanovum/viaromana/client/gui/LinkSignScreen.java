@@ -63,7 +63,7 @@ public class LinkSignScreen extends Screen {
         this.signPos = linkData.signPos();
         this.nodePos = linkData.nodePos();
         this.linkType = linkData.linkType() != null ? linkData.linkType() : Node.LinkType.DESTINATION;
-        this.icon = linkData.icon() != null ? linkData.icon() : Node.DEFAULT_DESTINATION_ICON;
+        this.icon = linkData.iconId() != null ? linkData.iconId() : Node.DEFAULT_DESTINATION_ICON;
         this.destinationName = linkData.destinationName() != null ? linkData.destinationName() : "Travel Destination";
         this.isTempNode = isTempNode;
         this.isSignLinked = isSignLinked;

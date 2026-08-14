@@ -24,7 +24,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class LinkHandler {
-    public record LinkData(BlockPos signPos, BlockPos nodePos, Node.LinkType linkType, ResourceLocation icon, String destinationName, UUID owner) {}
+    public record LinkData(BlockPos signPos, BlockPos nodePos, Node.LinkType linkType, ResourceLocation iconId, String destinationName, UUID owner) {
+        public LinkData(BlockPos signPos, BlockPos nodePos, Node.LinkType linkType, Node.Icon icon, String destinationName, UUID owner) {
+            this(signPos, nodePos, linkType, icon != null ? icon.id() : Node.DEFAULT_DESTINATION_ICON, destinationName, owner);
+        }
+
+        public Node.Icon icon() {
+            return Node.getBuiltInIcon(iconId).orElse(Node.Icon.SIGNPOST);
+        }
+    }
 
     /**
      * Checks if a given block position is a sign block based on the warp_block tag.
@@ -79,7 +87,7 @@ public class LinkHandler {
 
         graph.linkSignToNode(linkData.nodePos(), linkData.signPos(), linkData.linkType(), linkData.owner());
         node.setDestinationName(linkData.destinationName());
-        node.setDestinationIcon(linkData.icon());
+        node.setDestinationIcon(linkData.iconId());
 
         PathDataManager.markDirty(level);
         PathSyncUtils.syncPathGraphToAllPlayers(level);
@@ -168,7 +176,7 @@ public class LinkHandler {
                 signPos,
                 node.getBlockPos(),
                 node.getLinkType(),
-                node.getDestinationIcon().orElse(Node.DEFAULT_DESTINATION_ICON),
+                node.getDestinationIconId().orElse(Node.DEFAULT_DESTINATION_ICON),
                 node.getDestinationName().orElse("Travel Destination"),
                 node.getPrivateOwner().orElse(null)
             ));

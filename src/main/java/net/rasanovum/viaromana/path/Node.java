@@ -150,7 +150,7 @@ public class Node {
                 destTag.putString("name", destinationInfo.name);
             }
             if (destinationInfo.icon != null) {
-                destTag.putString("icon", destinationInfo.icon.toString());
+                destTag.putString("icon", destinationIconStorageValue(destinationInfo.icon));
             }
             tag.put("destination", destTag);
         }
@@ -245,12 +245,20 @@ public class Node {
         getOrCreateDestinationInfo().name = name;
     }
 
-    public Optional<ResourceLocation> getDestinationIcon() {
+    public Optional<Icon> getDestinationIcon() {
+        return getDestinationIconId().flatMap(Node::getBuiltInIcon);
+    }
+
+    public Optional<ResourceLocation> getDestinationIconId() {
         return Optional.ofNullable(destinationInfo).map(d -> d.icon);
     }
     
     public void setDestinationIcon(ResourceLocation icon) {
         getOrCreateDestinationInfo().icon = icon;
+    }
+
+    public void setDestinationIcon(Icon icon) {
+        setDestinationIcon(icon != null ? icon.id() : null);
     }
 
     public boolean isAccessibleBy(UUID playerId) {
@@ -333,6 +341,40 @@ public class Node {
         } catch (Exception e) {
             return DEFAULT_DESTINATION_ICON;
         }
+    }
+
+    public static Optional<Icon> getBuiltInIcon(ResourceLocation id) {
+        if (id == null || !"via_romana".equals(id.getNamespace())) return Optional.empty();
+        return Optional.ofNullable(switch (id.getPath()) {
+            case "signpost" -> Icon.SIGNPOST;
+            case "house" -> Icon.HOUSE;
+            case "shop" -> Icon.SHOP;
+            case "tower" -> Icon.TOWER;
+            case "cave" -> Icon.CAVE;
+            case "crop" -> Icon.CROP;
+            case "portal" -> Icon.PORTAL;
+            case "book" -> Icon.BOOK;
+            default -> null;
+        });
+    }
+
+    private static String destinationIconStorageValue(ResourceLocation icon) {
+        if (icon == null) return DEFAULT_DESTINATION_ICON.toString();
+        if ("via_romana".equals(icon.getNamespace())) {
+            String legacyName = switch (icon.getPath()) {
+                case "signpost" -> "SIGNPOST";
+                case "house" -> "HOUSE";
+                case "shop" -> "SHOP";
+                case "tower" -> "TOWER";
+                case "cave" -> "CAVE";
+                case "crop" -> "CROP";
+                case "portal" -> "PORTAL";
+                case "book" -> "BOOK";
+                default -> null;
+            };
+            if (legacyName != null) return legacyName;
+        }
+        return icon.toString();
     }
     //endregion
 }

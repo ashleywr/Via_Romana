@@ -2,6 +2,7 @@ package net.rasanovum.viaromana.network.packets;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -29,8 +30,21 @@ public record SignLinkRequestC2S(LinkData linkData, boolean isTempNode) implemen
         Node.LinkType linkType = buf.readEnum(Node.LinkType.class);
         UUID owner = buf.readBoolean() ? buf.readUUID() : null;
         String destinationName = buf.readUtf();
-        var icon = Node.parseDestinationIcon(buf.readUtf());
+        var icon = readDestinationIcon(buf);
         return new LinkData(signPos, nodePos, linkType, icon, destinationName, owner);
+    }
+
+    private static ResourceLocation readDestinationIcon(FriendlyByteBuf buf) {
+        int readerIndex = buf.readerIndex();
+        int prefix = buf.readVarInt();
+        Node.Icon[] icons = Node.Icon.values();
+
+        if (prefix >= 0 && prefix < icons.length && (prefix == 0 || buf.readableBytes() < prefix + 1)) {
+            return icons[prefix].id();
+        }
+
+        buf.readerIndex(readerIndex);
+        return Node.parseDestinationIcon(buf.readUtf());
     }
 
     public void write(FriendlyByteBuf buf) {
@@ -42,7 +56,7 @@ public record SignLinkRequestC2S(LinkData linkData, boolean isTempNode) implemen
             buf.writeUUID(this.linkData.owner());
         }
         buf.writeUtf(this.linkData.destinationName());
-        buf.writeUtf((this.linkData.icon() != null ? this.linkData.icon() : Node.DEFAULT_DESTINATION_ICON).toString());
+        buf.writeUtf((this.linkData.iconId() != null ? this.linkData.iconId() : Node.DEFAULT_DESTINATION_ICON).toString());
         buf.writeBoolean(this.isTempNode);
     }
 
