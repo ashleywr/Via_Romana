@@ -10,6 +10,7 @@ import net.rasanovum.viaromana.util.VersionUtils;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +30,16 @@ public class Node {
     }
 
     public static final ResourceLocation DEFAULT_DESTINATION_ICON = VersionUtils.getLocation("via_romana", "signpost");
+    public static final List<ResourceLocation> BUILT_IN_DESTINATION_ICONS = List.of(
+            DEFAULT_DESTINATION_ICON,
+            VersionUtils.getLocation("via_romana", "house"),
+            VersionUtils.getLocation("via_romana", "shop"),
+            VersionUtils.getLocation("via_romana", "tower"),
+            VersionUtils.getLocation("via_romana", "cave"),
+            VersionUtils.getLocation("via_romana", "crop"),
+            VersionUtils.getLocation("via_romana", "portal"),
+            VersionUtils.getLocation("via_romana", "book")
+    );
 
     public enum Icon {
         SIGNPOST("signpost"),
@@ -311,9 +322,6 @@ public class Node {
 
     public static ResourceLocation parseDestinationIcon(String value) {
         if (value == null || value.isBlank()) return DEFAULT_DESTINATION_ICON;
-
-        Icon legacyIcon = safeEnum(Icon.class, value, null);
-        if (legacyIcon != null) return legacyIcon.id();
 
         String normalized = value.toLowerCase(Locale.ROOT);
         if (normalized.indexOf(':') < 0) {

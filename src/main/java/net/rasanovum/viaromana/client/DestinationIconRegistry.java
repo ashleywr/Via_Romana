@@ -106,8 +106,7 @@ public final class DestinationIconRegistry {
     }
 
     private static void addBuiltInIcons(Map<ResourceLocation, Entry> destination) {
-        for (Node.Icon icon : Node.Icon.values()) {
-            ResourceLocation id = icon.id();
+        for (ResourceLocation id : Node.BUILT_IN_DESTINATION_ICONS) {
             ResourceLocation texture = VersionUtils.getLocation(
                     "via_romana:textures/screens/marker_" + id.getPath() + ".png"
             );
