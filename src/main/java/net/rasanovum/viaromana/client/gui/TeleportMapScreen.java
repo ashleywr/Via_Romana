@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.rasanovum.viaromana.CommonConfig;
 import net.rasanovum.viaromana.ViaRomana;
@@ -70,6 +71,7 @@ public class TeleportMapScreen extends Screen {
 
     // Constants
     private static final int MARKER_SIZE = 16;
+    private static final int ITEM_MARKER_SIZE = 20;
     private static final int PLAYER_MARKER_SIZE = 8;
     private static final float MARKER_FADE_SPEED = 0.05f;
     private static final int DIRECTION_INDICATOR_BUFFER = 2;
@@ -472,9 +474,22 @@ public class TeleportMapScreen extends Screen {
 
     private void renderDestinationIcon(GuiGraphics guiGraphics, DestinationIconRegistry.Entry icon, int x, int y, float alpha, boolean isHovered) {
         if (icon.kind() == DestinationIconRegistry.Kind.ITEM) {
-            guiGraphics.fill(x + 1, y + 1, x + MARKER_SIZE + 1, y + MARKER_SIZE + 1, ((int) (alpha * 64.0f) << 24));
-            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
-            guiGraphics.renderItem(icon.itemStack(), x, y);
+            int backingX = x - (ITEM_MARKER_SIZE - MARKER_SIZE) / 2;
+            int backingY = y - (ITEM_MARKER_SIZE - MARKER_SIZE) / 2;
+            int backingAlpha = isHovered ? 235 : 205;
+
+            guiGraphics.fill(backingX + 1, backingY + 1, backingX + ITEM_MARKER_SIZE + 1, backingY + ITEM_MARKER_SIZE + 1, alphaColor(alpha, 96, 0x000000));
+            guiGraphics.fill(backingX, backingY, backingX + ITEM_MARKER_SIZE, backingY + ITEM_MARKER_SIZE, alphaColor(alpha, backingAlpha, 0xD5B982));
+            guiGraphics.hLine(backingX, backingX + ITEM_MARKER_SIZE - 1, backingY, alphaColor(alpha, 220, 0x3F2A1B));
+            guiGraphics.hLine(backingX, backingX + ITEM_MARKER_SIZE - 1, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
+            guiGraphics.vLine(backingX, backingY, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
+            guiGraphics.vLine(backingX + ITEM_MARKER_SIZE - 1, backingY, backingY + ITEM_MARKER_SIZE - 1, alphaColor(alpha, 220, 0x3F2A1B));
+
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(backingX + 2, backingY + 2, 0);
+            guiGraphics.pose().scale(1.0f + (ITEM_MARKER_SIZE - MARKER_SIZE) / (float) MARKER_SIZE, 1.0f + (ITEM_MARKER_SIZE - MARKER_SIZE) / (float) MARKER_SIZE, 1.0f);
+            guiGraphics.renderItem(icon.itemStack(), 0, 0);
+            guiGraphics.pose().popPose();
             return;
         }
 
@@ -486,6 +501,11 @@ public class TeleportMapScreen extends Screen {
         float brightness = isHovered ? 1.25f : 1.0f;
         RenderSystem.setShaderColor(brightness, brightness, brightness, alpha);
         guiGraphics.blit(markerTexture, x, y, 0, 0, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
+    }
+
+    private int alphaColor(float screenAlpha, int alpha, int color) {
+        int resolvedAlpha = Mth.clamp((int) (screenAlpha * alpha), 0, 255);
+        return (resolvedAlpha << 24) | color;
     }
 
     private void renderPlayerMarker(GuiGraphics guiGraphics, Player player) {

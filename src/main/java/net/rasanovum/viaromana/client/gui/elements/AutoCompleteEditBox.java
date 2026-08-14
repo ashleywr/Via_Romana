@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.rasanovum.viaromana.client.gui.GuiConstants;
 import net.rasanovum.viaromana.util.DelegatingConsumer;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;
@@ -33,6 +34,9 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
     private static final int PICKER_SIZE = 16;
     private static final int PICKER_GAP = 3;
     private static final int PICKER_TOP_PADDING = 2;
+    private static final int DROPDOWN_BACKGROUND = 0xE8D5B982;
+    private static final int DROPDOWN_HOVER_BACKGROUND = 0xF0E8D49A;
+    private static final int FIELD_HINT_COLOR = 0x8A6B5B4F;
 
     private final SearchTree<T> tree;
     private final Function<T, ResourceLocation> idGetter;
@@ -54,6 +58,9 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
         this.maxSuggestions = maxSuggestions;
         this.minSearchLength = minSearchLength;
         this.debounceMillis = debounceMillis;
+        this.setBordered(false);
+        this.setTextColor(GuiConstants.TEXT_COLOR_PRIMARY);
+        this.setTextColorUneditable(GuiConstants.TEXT_COLOR_SECONDARY);
         setResponder(responders = new DelegatingConsumer<>());
         addResponder(autoComplete = new AutoComplete(x, y + 2 + height, width, itemHeight, itemWidth));
 
@@ -77,6 +84,21 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
     }
 
     public abstract void renderItem(GuiGraphics graphics, int x, int y, T item);
+
+    @Override
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (!this.isVisible()) return;
+
+        guiGraphics.fill(this.getX(), this.getY() + this.height - 1, this.getX() + this.width, this.getY() + this.height, 0xFF000000 | GuiConstants.BORDER_COLOR_PRIMARY);
+        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+
+        if (this.getValue().isEmpty()) {
+            Component hint = this.isFocused()
+                    ? Component.literal("minecraft:compass or @mod")
+                    : Component.literal("Item id...");
+            guiGraphics.drawString(Minecraft.getInstance().font, hint, this.getX() + 4, this.getY() + (this.height - 8) / 2, FIELD_HINT_COLOR, false);
+        }
+    }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -211,9 +233,17 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
                 int maxY = minY + itemHeight;
                 T item = currentSuggestions.get(i);
                 boolean hovered = i - offset == selectedIndex;
-                guiGraphics.fill(RenderType.guiOverlay(), this.getX(), minY, this.getX() + this.getWidth(), maxY, hovered ? -535752431 : -536870912);
+                guiGraphics.fill(RenderType.guiOverlay(), this.getX(), minY, this.getX() + this.getWidth(), maxY, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
+                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, minY, GuiConstants.BORDER_COLOR_PRIMARY);
+                guiGraphics.hLine(this.getX(), this.getX() + this.getWidth() - 1, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+                guiGraphics.vLine(this.getX(), minY, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+                guiGraphics.vLine(this.getX() + this.getWidth() - 1, minY, maxY - 1, GuiConstants.BORDER_COLOR_PRIMARY);
                 renderItem(guiGraphics, minX, minY, item);
-                guiGraphics.drawString(Minecraft.getInstance().font, Component.literal(idGetter.apply(item).toString()), minX + itemWidth + 2, minY + (itemHeight - 9) / 2, hovered ? ChatFormatting.YELLOW.getColor() : -1);
+                Font font = Minecraft.getInstance().font;
+                int textX = minX + itemWidth + 2;
+                int availableWidth = Math.max(0, this.getX() + this.getWidth() - textX - 3);
+                String label = truncateToWidth(font, idGetter.apply(item).toString(), availableWidth);
+                guiGraphics.drawString(font, Component.literal(label), textX, minY + (itemHeight - 9) / 2, hovered ? 0x6B4A19 : GuiConstants.TEXT_COLOR_PRIMARY, false);
             }
 
             renderPicker(guiGraphics, mouseX, mouseY);
@@ -351,9 +381,13 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
 
         private void renderPickerButton(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY, boolean up) {
             boolean hovered = mouseX >= x && mouseX < x + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE;
-            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? -535752431 : -536870912);
+            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
+            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.vLine(x, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.vLine(x + PICKER_SIZE - 1, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
 
-            int color = hovered ? ChatFormatting.YELLOW.getColor() : -1;
+            int color = hovered ? 0x6B4A19 : GuiConstants.TEXT_COLOR_PRIMARY;
             int centerX = x + PICKER_SIZE / 2;
             int startY = up ? y + 5 : y + 10;
             for (int row = 0; row < 4; row++) {
@@ -365,7 +399,11 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
 
         private void renderSelectedIcon(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
             boolean hovered = mouseX >= x && mouseX < x + PICKER_SIZE && mouseY >= y && mouseY < y + PICKER_SIZE;
-            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? -535752431 : -536870912);
+            guiGraphics.fill(RenderType.guiOverlay(), x, y, x + PICKER_SIZE, y + PICKER_SIZE, hovered ? DROPDOWN_HOVER_BACKGROUND : DROPDOWN_BACKGROUND);
+            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.hLine(x, x + PICKER_SIZE - 1, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.vLine(x, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
+            guiGraphics.vLine(x + PICKER_SIZE - 1, y, y + PICKER_SIZE - 1, GuiConstants.BORDER_COLOR_PRIMARY);
 
             T item = getSuggestion(selectedSuggestionIndex());
             if (item != null) {
@@ -413,6 +451,12 @@ public abstract class AutoCompleteEditBox<T> extends EditBox {
 
         private int pickerY() {
             return this.getY() + shownSuggestions() * itemHeight + PICKER_TOP_PADDING;
+        }
+
+        private String truncateToWidth(Font font, String text, int width) {
+            if (font.width(text) <= width) return text;
+            if (width <= font.width("...")) return "";
+            return font.plainSubstrByWidth(text, width - font.width("...")) + "...";
         }
     }
 }
