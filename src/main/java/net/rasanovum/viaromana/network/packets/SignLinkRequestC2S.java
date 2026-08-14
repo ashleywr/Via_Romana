@@ -29,7 +29,7 @@ public record SignLinkRequestC2S(LinkData linkData, boolean isTempNode) implemen
         Node.LinkType linkType = buf.readEnum(Node.LinkType.class);
         UUID owner = buf.readBoolean() ? buf.readUUID() : null;
         String destinationName = buf.readUtf();
-        Node.Icon icon = buf.readEnum(Node.Icon.class);
+        var icon = Node.parseDestinationIcon(buf.readUtf());
         return new LinkData(signPos, nodePos, linkType, icon, destinationName, owner);
     }
 
@@ -42,7 +42,7 @@ public record SignLinkRequestC2S(LinkData linkData, boolean isTempNode) implemen
             buf.writeUUID(this.linkData.owner());
         }
         buf.writeUtf(this.linkData.destinationName());
-        buf.writeEnum(this.linkData.icon());
+        buf.writeUtf((this.linkData.icon() != null ? this.linkData.icon() : Node.DEFAULT_DESTINATION_ICON).toString());
         buf.writeBoolean(this.isTempNode);
     }
 

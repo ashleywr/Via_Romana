@@ -114,7 +114,7 @@ public class SignEditHelper {
                         signPos,
                         node.getBlockPos(),
                         Node.LinkType.DESTINATION,
-                        Node.Icon.SIGNPOST,
+                        Node.DEFAULT_DESTINATION_ICON,
                         Component.translatable("gui.viaromana.default_destination_name").getString(),
                         null
                 );

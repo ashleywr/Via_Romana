@@ -3,6 +3,7 @@ package net.rasanovum.viaromana.network.packets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.rasanovum.viaromana.client.gui.TeleportMapScreen;
@@ -58,13 +59,13 @@ public record DestinationResponseS2C(
         public final BlockPos position;
         public final String name;
         public final double distance;
-        public final Node.Icon icon;
+        public final ResourceLocation icon;
 
-        public DestinationInfo(BlockPos position, String name, double distance, Node.Icon icon) {
+        public DestinationInfo(BlockPos position, String name, double distance, ResourceLocation icon) {
             this.position = position;
             this.name = name;
             this.distance = distance;
-            this.icon = icon;
+            this.icon = icon != null ? icon : Node.DEFAULT_DESTINATION_ICON;
         }
 
         public DestinationInfo(FriendlyByteBuf buf) {
@@ -72,7 +73,7 @@ public record DestinationResponseS2C(
                     buf.readBlockPos(),
                     buf.readUtf(),
                     buf.readDouble(),
-                    Node.Icon.valueOf(buf.readUtf())
+                    Node.parseDestinationIcon(buf.readUtf())
             );
         }
 
@@ -80,7 +81,7 @@ public record DestinationResponseS2C(
             buf.writeBlockPos(position);
             buf.writeUtf(name);
             buf.writeDouble(distance);
-            buf.writeUtf(icon.name());
+            buf.writeUtf(icon.toString());
         }
     }
 

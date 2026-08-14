@@ -15,6 +15,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Player;
 import net.rasanovum.viaromana.CommonConfig;
 import net.rasanovum.viaromana.ViaRomana;
+import net.rasanovum.viaromana.client.DestinationIconRegistry;
 import net.rasanovum.viaromana.client.FadeManager;
 import net.rasanovum.viaromana.client.HudMessageManager;
 import net.rasanovum.viaromana.client.MapClient;
@@ -451,7 +452,7 @@ public class TeleportMapScreen extends Screen {
 
                     boolean isHovered = hoveredDestination != null && hoveredDestination.position.equals(dest.position);
 
-                    ResourceLocation markerTexture = VersionUtils.getLocation("via_romana:textures/screens/marker_" + dest.icon.toString().toLowerCase() + ".png");
+                    DestinationIconRegistry.Entry markerIcon = DestinationIconRegistry.getEntry(dest.icon);
                     int x = screenPos.x - MARKER_SIZE / 2;
                     int y = screenPos.y - MARKER_SIZE / 2;
 
@@ -459,14 +460,7 @@ public class TeleportMapScreen extends Screen {
                     RenderSystem.enableBlend();
                     RenderSystem.defaultBlendFunc();
 
-                    // Shadow
-                    RenderSystem.setShaderColor(0.0f, 0.0f, 0.0f, alpha / 2);
-                    guiGraphics.blit(markerTexture, x + 1, y + 1, 0, 0, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
-
-                    // Icon
-                    float brightness = isHovered ? 1.25f : 1.0f;
-                    RenderSystem.setShaderColor(brightness, brightness, brightness, alpha);
-                    guiGraphics.blit(markerTexture, x, y, 0, 0, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
+                    renderDestinationIcon(guiGraphics, markerIcon, x, y, alpha, isHovered);
 
                     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
                     RenderSystem.disableBlend();
@@ -474,6 +468,24 @@ public class TeleportMapScreen extends Screen {
                 });
             }
         }
+    }
+
+    private void renderDestinationIcon(GuiGraphics guiGraphics, DestinationIconRegistry.Entry icon, int x, int y, float alpha, boolean isHovered) {
+        if (icon.kind() == DestinationIconRegistry.Kind.ITEM) {
+            guiGraphics.fill(x + 1, y + 1, x + MARKER_SIZE + 1, y + MARKER_SIZE + 1, ((int) (alpha * 64.0f) << 24));
+            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
+            guiGraphics.renderItem(icon.itemStack(), x, y);
+            return;
+        }
+
+        ResourceLocation markerTexture = icon.texture();
+
+        RenderSystem.setShaderColor(0.0f, 0.0f, 0.0f, alpha / 2);
+        guiGraphics.blit(markerTexture, x + 1, y + 1, 0, 0, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
+
+        float brightness = isHovered ? 1.25f : 1.0f;
+        RenderSystem.setShaderColor(brightness, brightness, brightness, alpha);
+        guiGraphics.blit(markerTexture, x, y, 0, 0, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE, MARKER_SIZE);
     }
 
     private void renderPlayerMarker(GuiGraphics guiGraphics, Player player) {

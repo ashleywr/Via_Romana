@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
@@ -66,13 +67,13 @@ public class TeleportHelper {
         public final BlockPos position;
         public final String name;
         public final double distance;
-        public final Node.Icon icon;
+        public final ResourceLocation icon;
 
-        public TeleportDestination(BlockPos position, String name, double distance, Node.Icon icon) {
+        public TeleportDestination(BlockPos position, String name, double distance, ResourceLocation icon) {
             this.position = position;
             this.name = name;
             this.distance = distance;
-            this.icon = icon;
+            this.icon = icon != null ? icon : Node.DEFAULT_DESTINATION_ICON;
         }
     }
 }

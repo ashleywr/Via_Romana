@@ -812,7 +812,7 @@ public final class PathGraph {
                             dest.getBlockPos(),
                             dest.getDestinationName().orElse("Unknown"),
                             distance,
-                            dest.getDestinationIcon().orElse(net.rasanovum.viaromana.path.Node.Icon.SIGNPOST)
+                            dest.getDestinationIcon().orElse(net.rasanovum.viaromana.path.Node.DEFAULT_DESTINATION_ICON)
                     );
                 })
                 .toList();

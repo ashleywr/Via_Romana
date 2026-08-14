@@ -13,6 +13,7 @@ import net.rasanovum.viaromana.client.data.ClientPathData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -23,7 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class LinkHandler {
-    public record LinkData(BlockPos signPos, BlockPos nodePos, Node.LinkType linkType, Node.Icon icon, String destinationName, UUID owner) {}
+    public record LinkData(BlockPos signPos, BlockPos nodePos, Node.LinkType linkType, ResourceLocation icon, String destinationName, UUID owner) {}
 
     /**
      * Checks if a given block position is a sign block based on the warp_block tag.
@@ -167,7 +168,7 @@ public class LinkHandler {
                 signPos,
                 node.getBlockPos(),
                 node.getLinkType(),
-                node.getDestinationIcon().orElse(Node.Icon.SIGNPOST),
+                node.getDestinationIcon().orElse(Node.DEFAULT_DESTINATION_ICON),
                 node.getDestinationName().orElse("Travel Destination"),
                 node.getPrivateOwner().orElse(null)
             ));

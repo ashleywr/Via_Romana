@@ -5,9 +5,12 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.rasanovum.viaromana.util.VersionUtils;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,8 +28,27 @@ public class Node {
         PRIVATE      // Private teleport destination for one owner
     }
 
+    public static final ResourceLocation DEFAULT_DESTINATION_ICON = VersionUtils.getLocation("via_romana", "signpost");
+
     public enum Icon {
-        SIGNPOST, HOUSE, SHOP, TOWER, CAVE, CROP, PORTAL, BOOK
+        SIGNPOST("signpost"),
+        HOUSE("house"),
+        SHOP("shop"),
+        TOWER("tower"),
+        CAVE("cave"),
+        CROP("crop"),
+        PORTAL("portal"),
+        BOOK("book");
+
+        private final ResourceLocation id;
+
+        Icon(String path) {
+            this.id = VersionUtils.getLocation("via_romana", path);
+        }
+
+        public ResourceLocation id() {
+            return id;
+        }
     }
     //endregion
 
@@ -47,7 +69,7 @@ public class Node {
         long teleportPos; // TODO: Cancelled for now
         UUID privateOwner = null;
         String name = null;
-        Icon icon = null;
+        ResourceLocation icon = null;
 
         DestinationInfo(long nodePos) {
             this.signPos = nodePos;
@@ -95,7 +117,7 @@ public class Node {
                 dest.name = destTag.getString("name");
             }
             if (destTag.contains("icon", Tag.TAG_STRING)) {
-                dest.icon = safeEnum(Icon.class, destTag.getString("icon"), null);
+                dest.icon = parseDestinationIcon(destTag.getString("icon"));
             }
         }
     }
@@ -117,7 +139,7 @@ public class Node {
                 destTag.putString("name", destinationInfo.name);
             }
             if (destinationInfo.icon != null) {
-                destTag.putString("icon", destinationInfo.icon.name());
+                destTag.putString("icon", destinationInfo.icon.toString());
             }
             tag.put("destination", destTag);
         }
@@ -212,11 +234,11 @@ public class Node {
         getOrCreateDestinationInfo().name = name;
     }
 
-    public Optional<Icon> getDestinationIcon() {
+    public Optional<ResourceLocation> getDestinationIcon() {
         return Optional.ofNullable(destinationInfo).map(d -> d.icon);
     }
     
-    public void setDestinationIcon(Icon icon) {
+    public void setDestinationIcon(ResourceLocation icon) {
         getOrCreateDestinationInfo().icon = icon;
     }
 
@@ -284,6 +306,24 @@ public class Node {
             return Enum.valueOf(type, name);
         } catch (IllegalArgumentException e) {
             return fallback;
+        }
+    }
+
+    public static ResourceLocation parseDestinationIcon(String value) {
+        if (value == null || value.isBlank()) return DEFAULT_DESTINATION_ICON;
+
+        Icon legacyIcon = safeEnum(Icon.class, value, null);
+        if (legacyIcon != null) return legacyIcon.id();
+
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.indexOf(':') < 0) {
+            normalized = "via_romana:" + normalized;
+        }
+
+        try {
+            return VersionUtils.getLocation(normalized);
+        } catch (Exception e) {
+            return DEFAULT_DESTINATION_ICON;
         }
     }
     //endregion

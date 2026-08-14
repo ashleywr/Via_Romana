@@ -1,13 +1,18 @@
 package net.rasanovum.viaromana.client.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.rasanovum.viaromana.client.DestinationIconRegistry;
 import net.rasanovum.viaromana.client.data.ClientPathData;
 import net.rasanovum.viaromana.client.gui.elements.*;
+import net.rasanovum.viaromana.client.search.ItemSearchTreeManager;
 import net.rasanovum.viaromana.core.LinkHandler;
 import net.rasanovum.viaromana.network.packets.SignLinkRequestC2S;
 import net.rasanovum.viaromana.network.packets.SignUnlinkRequestC2S;
@@ -43,11 +48,12 @@ public class LinkSignScreen extends Screen {
     private MapCycleButton<Node.LinkType> privateButton;
     private MapCycleButton<Node.LinkType> accessButton;
     private MapIconButtonGroup iconButtonGroup;
+    private AutoCompleteEditBox<ItemStack> itemIconField;
     private MapSignatureButton signatureButton;
     private MapActionButton unlinkButton;
     private String destinationName = "Travel Destination";
     private Node.LinkType linkType = Node.LinkType.DESTINATION;
-    private Node.Icon icon = Node.Icon.SIGNPOST;
+    private ResourceLocation icon = Node.DEFAULT_DESTINATION_ICON;
     // endregion
 
     public LinkSignScreen(Player player, LinkHandler.LinkData linkData, boolean isTempNode, boolean isSignLinked) {
@@ -57,7 +63,7 @@ public class LinkSignScreen extends Screen {
         this.signPos = linkData.signPos();
         this.nodePos = linkData.nodePos();
         this.linkType = linkData.linkType() != null ? linkData.linkType() : Node.LinkType.DESTINATION;
-        this.icon = linkData.icon() != null ? linkData.icon() : Node.Icon.SIGNPOST;
+        this.icon = linkData.icon() != null ? linkData.icon() : Node.DEFAULT_DESTINATION_ICON;
         this.destinationName = linkData.destinationName() != null ? linkData.destinationName() : "Travel Destination";
         this.isTempNode = isTempNode;
         this.isSignLinked = isSignLinked;
@@ -120,13 +126,45 @@ public class LinkSignScreen extends Screen {
         
         int iconGridX = usableX + (USABLE_WIDTH / 2) - 20;
         int iconGridY = usableY + 70;
-        this.iconButtonGroup = new MapIconButtonGroup(value -> this.icon = value);
+        this.iconButtonGroup = new MapIconButtonGroup(value -> {
+            this.icon = value;
+            if (this.itemIconField != null) {
+                this.itemIconField.setValue("");
+            }
+        });
         
-        List<MapIconButton> iconButtons = this.iconButtonGroup.createIconButtons(this.font, iconGridX, iconGridY, 4, 0);
+        List<MapIconButton> iconButtons = this.iconButtonGroup.createIconButtons(this.font, iconGridX, iconGridY, 5, 0);
         
         for (MapIconButton iconBtn : iconButtons) this.addRenderableWidget(iconBtn);
         
         this.iconButtonGroup.selectByIcon(this.icon);
+
+        this.itemIconField = new AutoCompleteEditBox<>(
+                this.font,
+                iconGridX,
+                usableY + 122,
+                104,
+                16,
+                16,
+                18,
+                3,
+                Component.translatable("gui.viaromana.item_icon"),
+                ItemSearchTreeManager.getSearchTree(),
+                stack -> stack.getItemHolder().unwrapKey().orElseThrow().location()
+        ) {
+            @Override
+            public void renderItem(GuiGraphics graphics, int x, int y, ItemStack item) {
+                graphics.renderItem(item, x, y);
+            }
+        };
+        this.itemIconField.setMaxLength(512);
+        this.itemIconField.addResponder(this::selectItemIcon);
+        if (DestinationIconRegistry.getEntry(this.icon).kind() == DestinationIconRegistry.Kind.ITEM) {
+            this.itemIconField.setValue(this.icon.toString());
+            this.iconButtonGroup.clearSelection();
+        }
+        this.addRenderableWidget(this.itemIconField);
+
         this.signatureButton = new MapSignatureButton(this.font, usableX + 10, usableY + 146, USABLE_WIDTH - 100, this.playerName, 
             (value) -> this.confirmLinking()
         );
@@ -146,6 +184,8 @@ public class LinkSignScreen extends Screen {
             );
             this.addRenderableWidget(this.unlinkButton);
         }
+
+        this.addRenderableWidget(this.itemIconField.autoComplete());
         
         this.setInitialFocus(this.destinationNameField);
     }
@@ -189,6 +229,16 @@ public class LinkSignScreen extends Screen {
         guiGraphics.drawString(this.font, Component.translatable("gui.viaromana.signature_label"), usableX + 10, usableY + 138, GuiConstants.TEXT_COLOR_PRIMARY, false);
         
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        if (this.itemIconField != null && !this.itemIconField.getValue().isBlank()) {
+            ResourceLocation itemId = ResourceLocation.tryParse(this.itemIconField.getValue());
+            if (itemId != null && BuiltInRegistries.ITEM.containsKey(itemId)) {
+                var item = BuiltInRegistries.ITEM.get(itemId);
+                if (item != Items.AIR) {
+                    guiGraphics.renderItem(item.getDefaultInstance(), this.itemIconField.getX() + this.itemIconField.getWidth() + 3, this.itemIconField.getY());
+                }
+            }
+        }
     }
     // endregion
     
@@ -205,9 +255,9 @@ public class LinkSignScreen extends Screen {
             selectedLinkType = Node.LinkType.DESTINATION;
         }
 
-        Node.Icon selectedIcon = this.icon;
+        ResourceLocation selectedIcon = this.icon;
         if (selectedIcon == null) {
-            selectedIcon = Node.Icon.SIGNPOST;
+            selectedIcon = Node.DEFAULT_DESTINATION_ICON;
         }
 
         UUID owner = (selectedLinkType == Node.LinkType.PRIVATE) ? this.playerUuid : null;
@@ -236,9 +286,41 @@ public class LinkSignScreen extends Screen {
 
         this.onClose();
     }
+
+    private void selectItemIcon(String value) {
+        ResourceLocation itemId = ResourceLocation.tryParse(value);
+        if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
+            resetInvalidItemIcon();
+            return;
+        }
+
+        var item = BuiltInRegistries.ITEM.get(itemId);
+        if (item == Items.AIR || item.getDefaultInstance().isEmpty()) {
+            resetInvalidItemIcon();
+            return;
+        }
+
+        this.icon = itemId;
+        if (this.iconButtonGroup != null) {
+            this.iconButtonGroup.clearSelection();
+        }
+    }
+
+    private void resetInvalidItemIcon() {
+        ResourceLocation selectedButtonIcon = this.iconButtonGroup != null ? this.iconButtonGroup.getSelectedIcon() : null;
+        this.icon = selectedButtonIcon != null ? selectedButtonIcon : Node.DEFAULT_DESTINATION_ICON;
+    }
     // endregion
     
     // region Event Handlers
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (this.itemIconField != null && this.itemIconField.isFocused() && this.itemIconField.autoComplete().mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 257 && this.destinationNameField.isFocused()) { // Enter key

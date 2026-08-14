@@ -6,7 +6,7 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.rasanovum.viaromana.path.Node;
+import net.rasanovum.viaromana.client.DestinationIconRegistry;
 import net.rasanovum.viaromana.util.VersionUtils;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -17,15 +17,15 @@ import java.util.function.Consumer;
  * Custom icon button for the LinkSignScreen that displays a scaled icon
  */
 public class MapIconButton extends AbstractButton {
-    private final Node.Icon icon;
-    private final Consumer<Node.Icon> onPress;
+    private final DestinationIconRegistry.Entry icon;
+    private final Consumer<ResourceLocation> onPress;
     
     private boolean isSelected = false;
     private static final int ICON_SIZE = 16;
-    public static final int CIRCLE_SIZE = 32;
+    public static final int CIRCLE_SIZE = 24;
 
-    public MapIconButton(Font font, int x, int y, Node.Icon icon, Consumer<Node.Icon> onPress) {
-        super(x, y, CIRCLE_SIZE, CIRCLE_SIZE, Component.empty());
+    public MapIconButton(Font font, int x, int y, DestinationIconRegistry.Entry icon, Consumer<ResourceLocation> onPress) {
+        super(x, y, CIRCLE_SIZE, CIRCLE_SIZE, Component.literal(icon.id().toString()));
         this.icon = icon;
         this.onPress = onPress;
     }
@@ -33,12 +33,12 @@ public class MapIconButton extends AbstractButton {
     @Override
     public void onPress() {
         if (this.onPress != null) {
-            this.onPress.accept(this.icon);
+            this.onPress.accept(this.icon.id());
         }
     }
 
-    public Node.Icon getIcon() {
-        return this.icon;
+    public ResourceLocation getIconId() {
+        return this.icon.id();
     }
 
     public void setSelected(boolean selected) {
@@ -47,20 +47,6 @@ public class MapIconButton extends AbstractButton {
 
     public boolean isSelected() {
         return this.isSelected;
-    }
-
-    private ResourceLocation getIconTexture(Node.Icon icon) {
-        String textureName = switch (icon) {
-            case SIGNPOST -> "marker_signpost";
-            case HOUSE -> "marker_house";
-            case SHOP -> "marker_shop";
-            case TOWER -> "marker_tower";
-            case CAVE -> "marker_cave";
-            case CROP -> "marker_crop";
-            case PORTAL -> "marker_portal";
-            case BOOK -> "marker_book";
-        };
-        return VersionUtils.getLocation("via_romana:textures/screens/" + textureName + ".png");
     }
 
     @Override
@@ -72,10 +58,9 @@ public class MapIconButton extends AbstractButton {
         int centerX = this.getX() + this.width / 2;
         int centerY = this.getY() + this.height / 2;
 
-        ResourceLocation iconTexture = getIconTexture(this.icon);
         int iconX = centerX - ICON_SIZE / 2;
         int iconY = centerY - ICON_SIZE / 2;
-        guiGraphics.blit(iconTexture, iconX, iconY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        renderIcon(guiGraphics, iconX, iconY);
 
         if (this.isSelected || this.isHovered()) {
             ResourceLocation circleTexture = VersionUtils.getLocation("via_romana:textures/screens/element_circle.png");
@@ -100,5 +85,15 @@ public class MapIconButton extends AbstractButton {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
         this.defaultButtonNarrationText(narrationElementOutput);
+    }
+
+    private void renderIcon(GuiGraphics guiGraphics, int x, int y) {
+        if (this.icon.kind() == DestinationIconRegistry.Kind.ITEM) {
+            guiGraphics.renderItem(this.icon.itemStack(), x, y);
+            return;
+        }
+
+        ResourceLocation iconTexture = this.icon.texture();
+        guiGraphics.blit(iconTexture, x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
     }
 }

@@ -1,6 +1,7 @@
 package net.rasanovum.viaromana.client.gui.elements;
 
-import net.rasanovum.viaromana.path.Node;
+import net.minecraft.resources.ResourceLocation;
+import net.rasanovum.viaromana.client.DestinationIconRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +13,9 @@ import java.util.function.Consumer;
 public class MapIconButtonGroup {
     private final List<MapIconButton> buttons = new ArrayList<>();
     private MapIconButton selectedButton = null;
-    private final Consumer<Node.Icon> onSelectionChange;
+    private final Consumer<ResourceLocation> onSelectionChange;
 
-    public MapIconButtonGroup(Consumer<Node.Icon> onSelectionChange) {
+    public MapIconButtonGroup(Consumer<ResourceLocation> onSelectionChange) {
         this.onSelectionChange = onSelectionChange;
     }
 
@@ -28,16 +29,16 @@ public class MapIconButtonGroup {
      * @return List of created buttons to add to the screen
      */
     public List<MapIconButton> createIconButtons(net.minecraft.client.gui.Font font, int startX, int startY, int columns, int spacing) {
-        Node.Icon[] icons = Node.Icon.values();
+        List<DestinationIconRegistry.Entry> icons = DestinationIconRegistry.getIcons();
         
-        for (int i = 0; i < icons.length; i++) {
+        for (int i = 0; i < icons.size(); i++) {
             int row = i / columns;
             int col = i % columns;
             
             int x = startX + col * (MapIconButton.CIRCLE_SIZE + spacing);
             int y = startY + row * (MapIconButton.CIRCLE_SIZE + spacing);
             
-            MapIconButton button = new MapIconButton(font, x, y, icons[i], this::selectByIcon);
+            MapIconButton button = new MapIconButton(font, x, y, icons.get(i), this::selectByIcon);
             this.buttons.add(button);
         }
         
@@ -61,21 +62,28 @@ public class MapIconButtonGroup {
         this.selectedButton = button;
 
         if (this.onSelectionChange != null) {
-            this.onSelectionChange.accept(button.getIcon());
+            this.onSelectionChange.accept(button.getIconId());
         }
     }
 
-    public void selectByIcon(Node.Icon icon) {
+    public void selectByIcon(ResourceLocation icon) {
         for (MapIconButton button : this.buttons) {
-            if (button.getIcon() == icon) {
+            if (button.getIconId().equals(icon)) {
                 selectButton(button);
                 break;
             }
         }
     }
 
-    public Node.Icon getSelectedIcon() {
-        return this.selectedButton != null ? this.selectedButton.getIcon() : null;
+    public void clearSelection() {
+        for (MapIconButton button : this.buttons) {
+            button.setSelected(false);
+        }
+        this.selectedButton = null;
+    }
+
+    public ResourceLocation getSelectedIcon() {
+        return this.selectedButton != null ? this.selectedButton.getIconId() : null;
     }
 
     public MapIconButton getSelectedButton() {

@@ -60,6 +60,7 @@
   "gui.viaromana.name_label": "Name:",
   "gui.viaromana.type_label": "Type:",
   "gui.viaromana.icon_label": "Icon:",
+  "gui.viaromana.item_icon": "Item Icon",
   "gui.viaromana.signature_label": "Signature:",
   "gui.viaromana.default_destination_name": "Travel Destination",
   "gui.viaromana.charting_screen.title": "Charting Screen",

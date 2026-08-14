@@ -21,6 +21,25 @@ If you have any questions that aren't [answered in our Wiki](https://github.com/
 - **[Moonlight Lib](https://modrinth.com/mod/moonlight)** - Provides runtime resource pack modification
 - **[MidnightLib](https://modrinth.com/mod/midnightlib)** - Provides config
 
+## Destination Icons
+
+Via Romana includes destination icons for signposts, houses, shops, towers, caves, crops, portals, and books.
+
+Resource packs can add more icons by placing 16x16 PNG files under `assets/<namespace>/textures/screens/destination_icons/`. For example, `assets/example_pack/textures/screens/destination_icons/lighthouse.png` registers the icon ID `example_pack:lighthouse`. Custom icons must be valid 16x16 PNG files and must not exceed 16 KiB.
+
+The destination icon field also accepts registered item IDs such as `minecraft:compass`, with autocomplete in the sign link screen.
+
+Resource packs can register item-backed icon aliases under `assets/<namespace>/via_romana/destination_icons/`. For example, `assets/example_pack/via_romana/destination_icons/emerald.json` registers `example_pack:emerald`:
+
+```json
+{
+  "type": "item",
+  "item": "minecraft:emerald"
+}
+```
+
+Item icon definitions must be valid JSON, must not exceed 4 KiB, and must reference a registered namespaced item ID.
+
 ## License
 
 **Via Romana** is licensed under the **Responsive Source License (RSL) v1.0**. See the [LICENSE](LICENSE.md) file for full details.
