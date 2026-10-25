@@ -45,3 +45,29 @@ Item icon definitions must be valid JSON, must not exceed 4 KiB, and must refere
 **Via Romana** is licensed under the **Responsive Source License (RSL) v1.0**. See the [LICENSE](LICENSE.md) file for full details.
 
 Feel free to include this mod in your modpack as long as you download it from our official sources.
+
+<!-- ashley-release-information -->
+
+## Ashley's builds
+
+This is an unofficial maintenance fork. Original authors retain ownership and credit. See the [upstream project](https://github.com/RasaNovum/Via_Romana) for the original mod. Local changes do not imply upstream endorsement.
+
+Licensing: **Restricted: RSL-1.0 public binary distribution requires permission**. Existing license files, copyright notices, attribution and any separate asset terms remain in force. This fork does not relicense upstream work.
+
+Provided **AS IS**, without warranty of any kind. Maintenance, updates and support are best effort; compatibility with every modpack is not guaranteed.
+
+### Distribution status
+
+Public binary publication is pending license/provenance review: Restricted: RSL-1.0 public binary distribution requires permission. An AS IS notice does not grant redistribution rights. Use the original author's distribution channels where applicable.
+
+### Building and reporting problems
+
+Use Java 21 and the checked-in Gradle wrapper:
+
+```powershell
+.\gradlew.bat :1.21.1-fabric:build :1.21.1-neoforge:build
+```
+
+Build outputs are under `build/libs/` or each loader subproject's `build/libs/`. Some projects require the local development dependencies described above; those dependencies are not included in the download.
+
+For a problem report, include the exact release filename, Minecraft and loader versions, relevant mod versions, `logs/latest.log`, and a crash report if one was written. Remove private information before sharing logs. Remove the JAR to uninstall; worlds containing this mod's blocks, entities or world generation may require restoring a backup.
